@@ -1,5 +1,3 @@
-# modules/aws-config/main.tf
-
 resource "aws_config_configuration_recorder" "main" {
   name     = "${var.environment}-config-recorder"
   role_arn = aws_iam_role.config_role.arn
@@ -86,3 +84,46 @@ resource "aws_config_config_rule" "required_tags" {
   }
 
   input_parameters = jsonencode({
+    tag1Key = "Environment"
+    tag2Key = "Project"
+    tag3Key = "Owner"
+  })
+
+  depends_on = [aws_config_configuration_recorder_status.main]
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+  }
+}
+
+resource "aws_iam_role" "config_role" {
+  name = "${var.environment}-config-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "config.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "config_policy" {
+  role       = aws_iam_role.config_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
+}
+
+data "aws_caller_identity" "current" {}
