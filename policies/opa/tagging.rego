@@ -2,7 +2,6 @@ package main
 
 required_tags := {"Environment", "Project", "Owner"}
 
-# Resource types that do not support tags in AWS
 untaggable_resources := {
   "aws_config_configuration_recorder",
   "aws_config_configuration_recorder_status",
