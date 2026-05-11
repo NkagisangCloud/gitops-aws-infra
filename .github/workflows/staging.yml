@@ -57,9 +57,6 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
 
-      # ── OPA/Conftest Policy Check ──────────────────────────
-      # Blocks the pipeline if any policy fails — apply never runs
-      # ──────────────────────────────────────────────────────
       - name: Convert Plan to JSON
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform show -json tfplan > tfplan.json
@@ -74,3 +71,21 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve tfplan
+
+      - name: Notify Slack Success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-type: application/json' \
+            --data '{
+              "text": "✅ *Staging Deployment Succeeded*\n*Repo:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.actor }}\n*Commit:* ${{ github.sha }}"
+            }'
+
+      - name: Notify Slack Failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-type: application/json' \
+            --data '{
+              "text": "❌ *Staging Deployment Failed*\n*Repo:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.actor }}\n*Commit:* ${{ github.sha }}"
+            }'
